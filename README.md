@@ -15,6 +15,26 @@ npm run preview    # xem thử bản dựng
 
 Tính năng "Tải thêm sự kiện từ Wikidata" cần chạy trên máy (dev hoặc preview) vì trang phải gọi được `query.wikidata.org`.
 
+## Triển khai lên Cloudflare Pages
+
+Bản build là trang tĩnh trong `dist/` (khoảng 58 tệp, 23 MB, tệp lớn nhất dưới 2 MB), nằm trong giới hạn của Cloudflare Pages.
+`public/_headers` đặt thời gian lưu đệm cho mã, bản đồ và ảnh vệ tinh.
+
+Cách 1, kéo thả: Cloudflare dashboard → Workers & Pages → Create → Pages → Upload assets, đặt tên dự án, rồi tải lên tệp zip của thư mục `dist/` (hoặc chính thư mục `dist/`).
+
+Cách 2, Wrangler (cần Node.js 18+):
+
+```bash
+npm install
+npx wrangler login                 # đăng nhập Cloudflare trong trình duyệt
+npx wrangler pages project create dia-cau-lich-su --production-branch main   # chỉ lần đầu
+npm run deploy                     # build rồi tải dist/ lên dự án ghi trong wrangler.toml
+```
+
+Đổi `name` trong `wrangler.toml` nếu ngài dùng tên dự án khác. Dự án tạo bằng tải lên trực tiếp không chuyển sang kết nối Git được về sau.
+
+Cách 3, kết nối GitHub: đẩy mã lên một kho GitHub, rồi trong Cloudflare chọn Pages → Connect to Git, với lệnh build `npm run build` và thư mục kết quả `dist`.
+
 ## Cấu trúc
 
 - `index.html`: giao diện và CSS.

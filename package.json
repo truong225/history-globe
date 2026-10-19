@@ -7,7 +7,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "build:artifact": "vite build && node scripts/build-artifact.mjs",
-    "prepare-maps": "bash scripts/prepare-maps.sh"
+    "prepare-maps": "bash scripts/prepare-maps.sh",
+    "deploy": "vite build && wrangler pages deploy"
   },
   "keywords": [],
   "author": "",
@@ -21,6 +22,7 @@
   "type": "module",
   "devDependencies": {
     "mapshaper": "^0.7.88",
-    "vite": "^6.4.4"
+    "vite": "^6.4.4",
+    "wrangler": "^4.151.1"
   }
 }
