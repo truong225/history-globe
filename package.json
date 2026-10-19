@@ -1,0 +1,26 @@
+{
+  "name": "dia-cau-lich-su",
+  "version": "1.0.0",
+  "description": "Địa cầu 3D lịch sử thế giới từ 3000 TCN đến nay",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "build:artifact": "vite build && node scripts/build-artifact.mjs",
+    "prepare-maps": "bash scripts/prepare-maps.sh"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "GPL-3.0",
+  "dependencies": {
+    "d3-geo": "^3.1.1",
+    "globe.gl": "^2.46.2",
+    "three": "^0.186.1",
+    "world-atlas": "^2.0.2"
+  },
+  "type": "module",
+  "devDependencies": {
+    "mapshaper": "^0.7.88",
+    "vite": "^6.4.4"
+  }
+}

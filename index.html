@@ -1,0 +1,300 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!--ARTIFACT-START-->
+<title>Địa cầu Lịch sử</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+Display:ital,wght@0,500;0,700;1,500&family=Be+Vietnam+Pro:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Bố cục: địa cầu chiếm toàn màn hình như bàn quan sát thiên văn; tiêu đề ngày tháng góc trên trái,
+   sổ sự kiện bên phải, thước thời gian khắc vạch ở đáy. Giao diện tối có chủ đích (không gian vũ trụ). */
+:root {
+  color-scheme: dark;
+  --space: #070b12;
+  --ink: #0e1622;
+  --panel: rgba(14, 22, 34, 0.86);
+  --line: #24344a;
+  --text: #e8e2d4;
+  --muted: #95a0ae;
+  --brass: #d9a441;
+  --brass-soft: rgba(217, 164, 65, 0.16);
+  --ocean: #0f2a40;
+  --f-display: 'Noto Serif Display', 'Noto Serif', Georgia, serif;
+  --f-body: 'Be Vietnam Pro', 'Segoe UI', system-ui, sans-serif;
+  --f-data: 'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace;
+}
+html, body { height: 100%; }
+body { background: #03060b; color: var(--text); font-family: var(--f-body); font-size: 14px; overflow: hidden; }
+* { box-sizing: border-box; }
+button, input, select { font: inherit; color: inherit; }
+button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--brass); outline-offset: 2px; }
+
+#app { position: relative; height: 100%; display: grid; grid-template-rows: 1fr auto; }
+#stage { position: relative; min-height: 0; overflow: hidden; }
+#globe { position: absolute; inset: 0; z-index: 1; isolation: isolate; }
+
+/* Tiêu đề ngày tháng */
+#masthead { position: absolute; top: 14px; left: max(16px, env(safe-area-inset-left, 0px)); max-width: min(560px, calc(100% - 32px)); pointer-events: none; display: grid; gap: 4px; z-index: 3; }
+#masthead .eyebrow { font-family: var(--f-data); font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--brass); }
+#date-big { font-family: var(--f-display); font-weight: 700; font-size: clamp(30px, 5vw, 56px); line-height: 1; letter-spacing: -0.01em; text-shadow: 0 2px 18px rgba(0,0,0,.6); }
+#date-big .era { font-style: italic; font-weight: 500; color: var(--brass); font-size: .55em; margin-left: .25em; }
+#era-name { font-family: var(--f-display); font-style: italic; font-size: 17px; color: var(--muted); text-shadow: 0 1px 8px rgba(0,0,0,.8); }
+#map-note { font-family: var(--f-data); font-size: 11px; color: var(--muted); }
+#map-note b { color: var(--text); font-weight: 600; }
+
+/* Nhãn quốc gia */
+.ctry { font-family: var(--f-body); font-size: 11px; font-weight: 500; color: #f4efe4; text-shadow: 0 0 3px #000, 0 0 6px #000; white-space: nowrap; transform: translate(-50%, -50%); pointer-events: none; transition: opacity .25s; letter-spacing: .02em; }
+.ctry.big { font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: .08em; }
+.ctry.vn { color: #ffd77a; }
+
+/* Sổ sự kiện */
+#panel { position: absolute; top: 12px; right: max(12px, env(safe-area-inset-right, 0px)); bottom: 12px; width: 360px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; backdrop-filter: blur(10px); display: grid; grid-template-rows: auto auto 1fr auto; z-index: 4; min-height: 0; }
+#panel header { padding: 14px 16px 10px; border-bottom: 1px solid var(--line); display: grid; gap: 4px; }
+#panel h2 { margin: 0; font-family: var(--f-display); font-size: 20px; font-weight: 500; text-wrap: balance; }
+#panel .sub { font-size: 12px; color: var(--muted); }
+#filters { display: flex; flex-wrap: wrap; gap: 6px; padding: 10px 16px; border-bottom: 1px solid var(--line); }
+.chip { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line); background: transparent; border-radius: 999px; padding: 3px 10px 3px 8px; font-size: 12px; cursor: pointer; color: var(--muted); }
+.chip .dot { width: 8px; height: 8px; border-radius: 50%; }
+.chip[aria-pressed="true"] { color: var(--text); border-color: #3b4f69; background: rgba(255,255,255,.04); }
+.chip[aria-pressed="false"] .dot { opacity: .3; }
+#list { overflow-y: auto; min-height: 0; padding: 4px 0; }
+.ev { display: grid; grid-template-columns: 78px 1fr; gap: 10px; padding: 9px 16px; border: 0; background: none; width: 100%; text-align: left; cursor: pointer; border-left: 3px solid transparent; }
+.ev:hover, .ev.sel { background: rgba(255,255,255,.04); }
+.ev.now { border-left-color: var(--brass); background: var(--brass-soft); }
+.ev time { font-family: var(--f-data); font-size: 11px; color: var(--muted); padding-top: 2px; font-variant-numeric: tabular-nums; }
+.ev .t { font-weight: 600; font-size: 13.5px; line-height: 1.3; display: flex; gap: 7px; align-items: baseline; }
+.ev .t .dot { flex: none; width: 8px; height: 8px; border-radius: 50%; transform: translateY(-1px); }
+.ev .d { font-size: 12.5px; color: var(--muted); line-height: 1.45; margin-top: 3px; }
+.ev .d a { color: var(--brass); }
+.empty { padding: 20px 16px; color: var(--muted); font-size: 13px; line-height: 1.5; }
+#panel footer { border-top: 1px solid var(--line); padding: 10px 16px; display: grid; gap: 6px; }
+#wd-btn { border: 1px solid var(--line); background: rgba(255,255,255,.03); border-radius: 6px; padding: 7px 10px; cursor: pointer; font-size: 12.5px; }
+#wd-btn:hover { border-color: var(--brass); }
+#wd-status { font-size: 11.5px; color: var(--muted); line-height: 1.4; }
+#panel-toggle { display: none; }
+
+/* Hộp thông tin lãnh thổ */
+#tip { position: absolute; z-index: 6; pointer-events: none; background: var(--ink); border: 1px solid var(--line); border-radius: 6px; padding: 7px 10px; font-size: 12.5px; max-width: 260px; box-shadow: 0 6px 20px rgba(0,0,0,.5); }
+#tip b { display: block; font-size: 13.5px; }
+#tip span { color: var(--muted); font-size: 11.5px; }
+
+/* Thước thời gian */
+#ruler { background: var(--ink); border-top: 1px solid var(--line); padding-block: 10px calc(10px + env(safe-area-inset-bottom, 0px)); padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: grid; gap: 8px; z-index: 5; }
+#controls { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
+.btn { border: 1px solid var(--line); background: rgba(255,255,255,.03); border-radius: 6px; padding: 5px 9px; cursor: pointer; font-family: var(--f-data); font-size: 12px; min-width: 34px; }
+.btn:hover { border-color: #3b4f69; }
+#play { background: var(--brass); color: #1a1205; border-color: var(--brass); font-weight: 600; min-width: 64px; }
+.group { display: inline-flex; gap: 4px; align-items: center; }
+.group label { font-size: 11px; color: var(--muted); font-family: var(--f-data); text-transform: uppercase; letter-spacing: .08em; }
+select, input[type=number] { background: var(--space); border: 1px solid var(--line); border-radius: 6px; padding: 4px 6px; font-family: var(--f-data); font-size: 12px; }
+input[type=number] { width: 80px; }
+#track-wrap { position: relative; padding-top: 2px; }
+#track { width: 100%; margin: 0; accent-color: var(--brass); height: 22px; cursor: pointer; }
+#ticks { position: relative; height: 26px; font-family: var(--f-data); font-size: 10.5px; color: var(--muted); }
+#ticks span { position: absolute; transform: translateX(-50%); white-space: nowrap; padding-top: 6px; }
+#ticks span::before { content: ""; position: absolute; left: 50%; top: 0; width: 1px; height: 5px; background: #3b4f69; }
+#ticks span.era { color: var(--text); }
+#ticks span.first { transform: none; }
+#ticks span.first::before { left: 0; }
+#ticks span.last { transform: translateX(-100%); }
+#ticks span.last::before { left: auto; right: 0; }
+#ticks .dens { position: absolute; bottom: 20px; width: 2px; background: var(--brass); opacity: .5; }
+
+
+/* Thẻ chú thích sự kiện neo trên địa cầu */
+.evpin { --stem: 22px; --dx: 0px; width: 0; height: 0; pointer-events: none; transition: opacity .2s; }
+.evpin.behind { opacity: 0 !important; }
+.evpin.behind .evcard, .evpin.behind .pin, .evpin.crowded .evcard, .evpin.member .evcard { pointer-events: none; }
+.evpin.crowded .evcard, .evpin.crowded .stem, .evpin.member .evcard, .evpin.member .stem { visibility: hidden; }
+.evpin .pin { position: absolute; left: -5px; top: -5px; width: 10px; height: 10px; border-radius: 50%; background: var(--c); box-shadow: 0 0 0 3px rgba(255,255,255,.18), 0 0 12px var(--c); pointer-events: auto; cursor: pointer; z-index: 1; }
+.evpin.member .pin, .evpin.crowded .pin { width: 8px; height: 8px; left: -4px; top: -4px; box-shadow: 0 0 0 2px rgba(0,0,0,.55); }
+.evpin .stem { position: absolute; left: -1px; bottom: 0; width: 2px; height: var(--stem); background: linear-gradient(to top, var(--c), rgba(255,255,255,.65)); }
+.evpin .hook { position: absolute; bottom: calc(var(--stem) - 1px); height: 2px; left: var(--hl, 0px); width: var(--hw, 0px); background: rgba(255,255,255,.65); }
+.evpin.crowded .hook, .evpin.member .hook { visibility: hidden; }
+.evcard { position: absolute; bottom: var(--stem); left: calc(var(--dx) - 110px); width: 220px; display: grid; gap: 6px; text-align: left; padding: 8px 10px 9px; border-radius: 8px;
+  background: rgba(9, 14, 22, .93); border: 1px solid rgba(255,255,255,.12); border-top: 3px solid var(--c); box-shadow: 0 10px 28px rgba(0,0,0,.55);
+  backdrop-filter: blur(6px); pointer-events: auto; color: var(--text); }
+.ctry { z-index: 1 !important; }
+.evpin { z-index: 1000 !important; }
+.evpin:hover, .evpin:focus-within { z-index: 1010 !important; }
+.evmain { all: unset; display: grid; gap: 3px; cursor: pointer; border-radius: 4px; }
+.evmain:focus-visible { outline: 2px solid var(--brass); outline-offset: 3px; }
+.evcard:hover { border-color: rgba(255,255,255,.3); border-top-color: var(--c); }
+.evcard .meta { display: flex; justify-content: space-between; gap: 8px; font-family: var(--f-data); font-size: 10px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.evcard .meta .cat { color: var(--c); }
+.evcard .ttl { font-family: var(--f-display); font-size: 15px; font-weight: 500; line-height: 1.2; text-wrap: balance; }
+.evcard .dsc { font-size: 11.5px; line-height: 1.4; color: #b9c1cc; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.evpin.now .dsc, .evpin.far .dsc { -webkit-line-clamp: 2; }
+.evpin.group .dsc { -webkit-line-clamp: 1; }
+.evpin.far .evcard { width: 190px; left: calc(var(--dx) - 95px); background: rgba(9, 14, 22, .86); }
+.evpin.far .ttl { font-size: 13px; }
+.evpin.group .evcard { width: 236px; left: calc(var(--dx) - 118px); }
+.evpin.down .stem { bottom: auto; top: 0; background: linear-gradient(to bottom, var(--c), rgba(255,255,255,.65)); }
+.evpin.down .hook { bottom: auto; top: calc(var(--stem) - 1px); }
+.evpin.down .evcard { bottom: auto; top: var(--stem); border-top-width: 1px; border-bottom: 3px solid var(--c); }
+.evpin.down .evcard:hover { border-bottom-color: var(--c); }
+.evcard .more[hidden] { display: none; }
+.evcard .more { display: grid; gap: 1px; border-top: 1px solid rgba(255,255,255,.1); padding-top: 5px; }
+.evcard .mhead { font-family: var(--f-data); font-size: 9.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); padding-bottom: 2px; }
+.evcard .mrow { all: unset; display: grid; grid-template-columns: 8px auto 1fr; align-items: baseline; gap: 6px; padding: 3px 4px; margin: 0 -4px; border-radius: 4px; cursor: pointer; font-size: 11.5px; line-height: 1.3; }
+.evcard .mrow:hover { background: rgba(255,255,255,.06); }
+.evcard .mrow:focus-visible { outline: 2px solid var(--brass); }
+.evcard .mrow .dot { width: 7px; height: 7px; border-radius: 50%; transform: translateY(-1px); }
+.evcard .mrow time { font-family: var(--f-data); font-size: 10px; color: var(--muted); white-space: nowrap; }
+.evcard .mrow .mt { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.evcard .mmore { font-size: 11px; color: var(--muted); padding: 2px 0 0; }
+.evcard.sel { box-shadow: 0 0 0 2px var(--brass), 0 10px 28px rgba(0,0,0,.55); }
+.evtip { font-family: var(--f-body); background: rgba(9,14,22,.92); border: 1px solid #24344a; border-radius: 6px; padding: 6px 9px; max-width: 240px; }
+.evtip time { display: block; font-family: var(--f-data); font-size: 11px; color: #95a0ae; }
+#legend-check { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); cursor: pointer; }
+#legend-check input { accent-color: var(--brass); }
+
+/* Bản đồ 2D và hiệu ứng trải phẳng */
+#globe { transition: opacity .3s; }
+#flat { position: absolute; inset: 0; z-index: 1; transition: opacity .35s; }
+#flat.enter { opacity: 0; }
+#flat canvas { position: absolute; left: 0; top: 0; }
+#globe.morphing .ctry, #globe.morphing .evpin { opacity: 0 !important; transition: none; }
+.flat-base { cursor: grab; touch-action: none; }
+.flat-fx { pointer-events: none; }
+.flat-scrim { position: absolute; inset: 0 0 auto 0; height: 170px; pointer-events: none; background: linear-gradient(rgba(3,6,11,.78), rgba(3,6,11,0)); }
+.flat-html { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+.flat-item { position: absolute; left: 0; top: 0; width: 0; height: 0; }
+
+/* Thanh chuyển chế độ xem */
+#viewbar { position: absolute; z-index: 5; left: max(16px, env(safe-area-inset-left, 0px)); bottom: 14px; display: flex; align-items: center; gap: 2px; padding: 3px;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 9px; backdrop-filter: blur(10px); box-shadow: 0 6px 20px rgba(0,0,0,.4); }
+#viewbar button { border: 0; background: transparent; border-radius: 6px; padding: 6px 11px; cursor: pointer; font-size: 12.5px; font-weight: 500; color: var(--muted); display: inline-flex; align-items: center; gap: 6px; }
+#viewbar button:hover { color: var(--text); background: rgba(255,255,255,.05); }
+#viewbar button[aria-pressed="true"] { background: var(--brass); color: #1a1205; }
+#viewbar button svg { width: 15px; height: 15px; flex: none; }
+#viewbar .zoom { font-family: var(--f-data); font-size: 15px; padding: 4px 10px; }
+#viewbar .sep { width: 1px; align-self: stretch; margin: 4px 3px; background: var(--line); }
+
+@media (max-width: 820px) {
+  #viewbar { left: auto; right: max(10px, env(safe-area-inset-right, 0px)); bottom: auto; top: 12px; flex-direction: column; }
+  #viewbar .lbl { display: none; }
+  #viewbar .sep { width: auto; height: 1px; margin: 3px 4px; }
+  #masthead { max-width: calc(100% - 80px); }
+  .evcard, .evpin.far .evcard, .evpin.group .evcard { width: 180px; left: calc(var(--dx) - 90px); }
+  .evcard .dsc { display: none; }
+  .evcard .ttl { font-size: 13px; }
+  #panel { top: auto; left: max(8px, env(safe-area-inset-left, 0px)); right: max(8px, env(safe-area-inset-right, 0px)); bottom: 8px; width: auto; height: 62%; }
+  #panel header { padding: 10px 14px 8px; }
+  #panel h2 { font-size: 17px; }
+  #panel footer { padding: 8px 14px; }
+  #wd-status { display: none; }
+  #date-big { font-size: 30px; }
+  #era-name { font-size: 14px; }
+  #map-note { display: none; }
+  #panel.closed { height: auto; grid-template-rows: auto; }
+  #panel.closed > :not(header) { display: none; }
+  #panel-toggle { display: inline-block; justify-self: start; margin-top: 4px; }
+  #ticks span:not(.era), #ticks span.opt { display: none; }
+  .hide-sm { display: none !important; }
+}
+@media (prefers-reduced-motion: reduce) { .ctry { transition: none; } }
+</style>
+<!--ARTIFACT-HEAD-END-->
+</head>
+<body>
+<!--ARTIFACT-BODY-START-->
+<div id="app">
+  <div id="stage">
+    <div id="globe" aria-label="Địa cầu 3D"></div>
+    <div id="masthead">
+      <div class="eyebrow">Địa cầu Lịch sử</div>
+      <div id="date-big">—</div>
+      <div id="era-name"></div>
+      <div id="map-note"></div>
+    </div>
+    <aside id="panel" aria-label="Sự kiện lịch sử">
+      <header>
+        <h2 id="panel-title">Sự kiện quanh thời điểm này</h2>
+        <div class="sub" id="panel-sub"></div>
+        <button class="btn" id="panel-toggle" type="button">Thu gọn</button>
+      </header>
+      <div id="filters"></div>
+      <div id="list"></div>
+      <footer>
+        <button id="wd-btn" type="button">Tải thêm sự kiện từ Wikidata</button>
+        <div id="wd-status">Bản đồ: historical-basemaps (A. Ourednik, GPL-3.0) và Natural Earth. Sự kiện: bộ tuyển chọn và Wikidata.</div>
+      </footer>
+    </aside>
+    <div id="viewbar" role="group" aria-label="Chế độ xem">
+      <button type="button" id="mode3d" aria-pressed="true" title="Địa cầu 3D"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><circle cx="8" cy="8" r="6.3"/><ellipse cx="8" cy="8" rx="2.8" ry="6.3"/><path d="M1.9 6h12.2M1.9 10h12.2"/></svg><span class="lbl">Địa cầu 3D</span></button>
+      <button type="button" id="mode2d" aria-pressed="false" title="Bản đồ 2D"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><path d="M1.5 3.5l4.3-1.6 4.4 1.6 4.3-1.6v10.6l-4.3 1.6-4.4-1.6-4.3 1.6z"/><path d="M5.8 1.9v10.6M10.2 3.5v10.6"/></svg><span class="lbl">Bản đồ 2D</span></button>
+      <span class="sep" aria-hidden="true"></span>
+      <button type="button" class="zoom" id="zoom-in" aria-label="Phóng to">+</button>
+      <button type="button" class="zoom" id="zoom-out" aria-label="Thu nhỏ">−</button>
+    </div>
+    <div id="tip" hidden></div>
+  </div>
+  <div id="ruler">
+    <div id="controls">
+      <button class="btn" id="play" type="button">▶ Chạy</button>
+      <div class="group">
+        <label for="speed">Tốc độ</label>
+        <select id="speed">
+          <option value="1">1 tháng/nhịp</option>
+          <option value="12" selected>1 năm/nhịp</option>
+          <option value="120">10 năm/nhịp</option>
+          <option value="1200">100 năm/nhịp</option>
+        </select>
+      </div>
+      <div class="group" role="group" aria-label="Bước thời gian">
+        <button class="btn hide-sm" type="button" data-step="-1200">−100n</button>
+        <button class="btn" type="button" data-step="-12">−1n</button>
+        <button class="btn" type="button" data-step="-1">−1t</button>
+        <button class="btn" type="button" data-step="1">+1t</button>
+        <button class="btn" type="button" data-step="12">+1n</button>
+        <button class="btn hide-sm" type="button" data-step="1200">+100n</button>
+      </div>
+      <form class="group" id="jump">
+        <label for="j-month">Đến</label>
+        <select id="j-month" aria-label="Tháng"></select>
+        <input id="j-year" type="number" min="1" max="3000" step="1" aria-label="Năm">
+        <select id="j-era" aria-label="Kỷ nguyên"><option value="ce">CN</option><option value="bce">TCN</option></select>
+        <button class="btn" type="submit">Đi</button>
+      </form>
+      <div class="group">
+        <label for="window">Phạm vi</label>
+        <select id="window">
+          <option value="auto" selected>Tự động</option>
+          <option value="0">Đúng năm</option>
+          <option value="5">±5 năm</option>
+          <option value="25">±25 năm</option>
+          <option value="100">±100 năm</option>
+        </select>
+      </div>
+      <div class="group hide-sm">
+        <label for="overlay">Lãnh thổ</label>
+        <select id="overlay">
+          <option value="strong">Đậm</option>
+          <option value="soft" selected>Nhạt</option>
+          <option value="off">Chỉ viền</option>
+        </select>
+      </div>
+      <label class="group hide-sm" id="legend-check"><input type="checkbox" id="clouds" checked> Mây</label>
+      <div class="group hide-sm">
+        <label for="labels">Nhãn</label>
+        <select id="labels">
+          <option value="main" selected>Nước lớn</option>
+          <option value="all">Tất cả</option>
+          <option value="none">Ẩn</option>
+        </select>
+      </div>
+    </div>
+    <div id="track-wrap">
+      <input id="track" type="range" min="0" max="10000" step="1" value="0" aria-label="Thanh thời gian">
+      <div id="ticks"></div>
+    </div>
+  </div>
+</div>
+<script type="module" src="./src/main.js"></script>
+<!--ARTIFACT-BODY-END-->
+</body>
+</html>
