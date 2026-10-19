@@ -8,7 +8,7 @@
     "preview": "vite preview",
     "build:artifact": "vite build && node scripts/build-artifact.mjs",
     "prepare-maps": "bash scripts/prepare-maps.sh",
-    "deploy": "vite build && wrangler pages deploy"
+    "deploy": "vite build && wrangler deploy"
   },
   "keywords": [],
   "author": "",

@@ -1,0 +1,9 @@
+// Cấu hình Cloudflare (Workers Static Assets).
+// "name" phải trùng với tên dự án ngài đặt trên dashboard Cloudflare.
+{
+  "name": "history-globe",
+  "compatibility_date": "2026-10-01",
+  "assets": {
+    "directory": "./dist"
+  }
+}

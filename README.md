@@ -15,25 +15,30 @@ npm run preview    # xem thử bản dựng
 
 Tính năng "Tải thêm sự kiện từ Wikidata" cần chạy trên máy (dev hoặc preview) vì trang phải gọi được `query.wikidata.org`.
 
-## Triển khai lên Cloudflare Pages
+## Triển khai lên Cloudflare
 
-Bản build là trang tĩnh trong `dist/` (khoảng 58 tệp, 23 MB, tệp lớn nhất dưới 2 MB), nằm trong giới hạn của Cloudflare Pages.
+Bản build là trang tĩnh trong `dist/` (58 tệp, khoảng 23 MB, tệp lớn nhất dưới 2 MB).
+`wrangler.jsonc` khai báo thư mục `dist` là nơi chứa trang (Workers Static Assets);
 `public/_headers` đặt thời gian lưu đệm cho mã, bản đồ và ảnh vệ tinh.
 
-Cách 1, kéo thả: Cloudflare dashboard → Workers & Pages → Create → Pages → Upload assets, đặt tên dự án, rồi tải lên tệp zip của thư mục `dist/` (hoặc chính thư mục `dist/`).
+### Kết nối GitHub (tự build mỗi lần đẩy mã)
 
-Cách 2, Wrangler (cần Node.js 18+):
+1. Đẩy mã nguồn lên một kho GitHub (tệp `.gitignore` đã loại `node_modules`, `dist`).
+2. Cloudflare dashboard → Workers & Pages → Create application → chọn Import a repository / Connect to Git → chọn kho.
+3. Điền:
+   - Project name: `history-globe` (phải trùng `name` trong `wrangler.jsonc`)
+   - Build command: `npm run build`
+   - Deploy command: `npx wrangler deploy` (mặc định)
+   - Root directory / Path: để trống nếu `package.json` nằm ở gốc kho
+4. Deploy. Địa chỉ có dạng `history-globe.<tên-tài-khoản>.workers.dev`; có thể gắn tên miền riêng trong Settings → Domains & Routes.
+
+### Từ máy tính bằng Wrangler
 
 ```bash
 npm install
-npx wrangler login                 # đăng nhập Cloudflare trong trình duyệt
-npx wrangler pages project create dia-cau-lich-su --production-branch main   # chỉ lần đầu
-npm run deploy                     # build rồi tải dist/ lên dự án ghi trong wrangler.toml
+npx wrangler login
+npm run deploy        # build rồi tải dist/ lên
 ```
-
-Đổi `name` trong `wrangler.toml` nếu ngài dùng tên dự án khác. Dự án tạo bằng tải lên trực tiếp không chuyển sang kết nối Git được về sau.
-
-Cách 3, kết nối GitHub: đẩy mã lên một kho GitHub, rồi trong Cloudflare chọn Pages → Connect to Git, với lệnh build `npm run build` và thư mục kết quả `dist`.
 
 ## Cấu trúc
 
